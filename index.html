@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HACKER'S LEGACY — THE SAGA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- CINEMATIC INTRO -->
+    <div class="intro-modal" id="introModal">
+        <div class="modal-content cinematic">
+            <div class="modal-header glitch" data-text="HACKER'S LEGACY">
+                <h2>⚡ HACKER'S LEGACY ⚡</h2>
+                <p class="subtitle">THE SAGA BEGINS</p>
+            </div>
+            <div class="modal-body">
+                <div class="story-scroll" id="storyScroll">
+                    <p class="story-line">2077. The world is connected.</p>
+                    <p class="story-line">Every breath, every thought, every secret —</p>
+                    <p class="story-line">stored in the vast neural network called THE GRID.</p>
+                    <p class="story-line">Corporations rule with code.</p>
+                    <p class="story-line">Governments are ghosts.</p>
+                    <p class="story-line">And you? You're nothing.</p>
+                    <p class="story-line">Just another data point in the machine.</p>
+                    <p class="story-line">Until tonight.</p>
+                    <p class="story-line">A message appears on your terminal:</p>
+                    <p class="story-line glitch-red">"THE SYSTEM IS BROKEN. WILL YOU FIX IT,</p>
+                    <p class="story-line glitch-red">EXPLOIT IT, OR BURN IT DOWN?"</p>
+                    <p class="story-line">Your journey begins now.</p>
+                </div>
+                
+                <div class="command-highlight">
+                    <p><strong>📌 QUICK START:</strong></p>
+                    <p><code>help</code> — Show all commands</p>
+                    <p><code>ls</code> — List directories</p>
+                    <p><code>cd /story</code> — Read the lore</p>
+                    <p><code>cd /missions</code> — Enter missions</p>
+                    <p><code>path</code> — Choose your destiny</p>
+                    <p><code>map</code> — View your journey</p>
+                    <p><code>achievements</code> — Track progress</p>
+                    <p><code>admin</code> — God mode (PIN: 427568)</p>
+                </div>
+
+                <div class="security-notice">
+                    <p>⚡ This is more than a game. This is a journey. Every choice matters.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="start-btn" id="startGame">▶ ENTER THE GRID</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="terminal" id="terminal" style="display: none;">
+        <div class="terminal-header">
+            <div class="controls">
+                <span class="control close"></span>
+                <span class="control minimize"></span>
+                <span class="control maximize"></span>
+            </div>
+            <div class="title">HACKER'S LEGACY — THE SAGA</div>
+            <div class="clock" id="clock">00:00:00</div>
+        </div>
+        <div class="terminal-content">
+            <div class="output" id="output"></div>
+            <div class="input-line">
+                <span class="prompt" id="prompt">guest@legacy:~$</span>
+                <input type="text" class="command-input" id="commandInput" autocomplete="off" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <script src="missions.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
