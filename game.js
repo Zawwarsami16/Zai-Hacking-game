@@ -717,7 +717,7 @@ function handleCommand(cmd) {
             print('║ slots      - View save slots        ║');
             print('║ save <N>   - Save to slot N         ║');
             print('║ load <N>   - Load from slot N       ║');
-            print('║ admin      - Admin login            ║');
+            print('║ admin <pin>- Admin login            ║');
             print('║ readme     - Game manual            ║');
             print('║ clear      - Clear screen           ║');
             print('╚══════════════════════════════════════╝');
@@ -796,12 +796,18 @@ function handleCommand(cmd) {
             break;
 
         case 'admin':
-            const pin = prompt('Enter admin PIN:');
-            if (pin === '427568') {
+            if (!args.length) {
+                printInfo('Usage: admin <pin>');
+                printInfo('Hint: PIN was set when you started this game.');
+                break;
+            }
+            if (args[0] === '427568') {
                 gameState.isAdmin = true;
                 printSuccess('✅ Admin mode activated');
-                printInfo('Commands: goto <level>, unlock_all, complete_act');
-            } else printError('❌ Wrong PIN');
+                printInfo('Commands: goto <level>, unlock_all, complete_act <act>');
+            } else {
+                printError('❌ Wrong PIN');
+            }
             break;
 
         case 'goto':
