@@ -382,7 +382,10 @@ function saveToSlot(slot) {
         currentAct: gameState.currentAct,
         currentChapter: gameState.currentChapter,
         metGhost: gameState.metGhost,
-        chosePath: gameState.chosePath
+        chosePath: gameState.chosePath,
+        achievements: gameState.achievements,
+        isAdmin: gameState.isAdmin,
+        savedAt: Date.now()
     };
     localStorage.setItem(`slot_${slot}`, JSON.stringify(data));
     saveSlots[slot] = data;
@@ -400,7 +403,12 @@ function loadFromSlot(slot) {
         gameState.currentChapter = data.currentChapter || 1;
         gameState.metGhost = data.metGhost || false;
         gameState.chosePath = data.chosePath || false;
+        gameState.achievements = data.achievements || [];
+        gameState.isAdmin = data.isAdmin || false;
         gameState.slot = slot;
+        gameState.currentMission = null;
+        gameState.pendingReplay = null;
+        updatePrompt();
         printSuccess(`✅ Loaded slot ${slot + 1}`);
         showCurrentAct();
     } else {
@@ -436,6 +444,10 @@ function choosePath() {
     print('║ 3. GREY HAT - The Vigilante         ║');
     print('╚══════════════════════════════════════╝');
     print('\n💭 GHOST: "Choose wisely. This decision cannot be undone."');
+    printInfo('\n→ Type  path 1  (or path1) to confirm WHITE HAT');
+    printInfo('→ Type  path 2  (or path2) to confirm BLACK HAT');
+    printInfo('→ Type  path 3  (or path3) to confirm GREY HAT');
+    gameState.awaitingPath = true;
 }
 
 function setPath(num) {
@@ -572,13 +584,15 @@ function handleMissionCommand(cmd) {
         const maxAllowed = expNeededForNextLevel - gameState.exp + 200;
         if (totalReward > maxAllowed) totalReward = maxAllowed;
         
-        gameState.completedMissions.push(gameState.currentMission.id);
+        if (!gameState.completedMissions.includes(gameState.currentMission.id)) {
+            gameState.completedMissions.push(gameState.currentMission.id);
+        }
         gameState.exp += totalReward;
-        
+
         let leveledUp = false;
-        while (gameState.exp >= gameState.level * 1000) {
-            gameState.level++;
+        while (gameState.exp >= gameState.level * 1000 && gameState.level < 100) {
             gameState.exp -= gameState.level * 1000;
+            gameState.level++;
             leveledUp = true;
         }
         
@@ -665,16 +679,16 @@ function showAchievements() {
 function handleCommand(cmd) {
     // Handle replay response
     if (gameState.pendingReplay) {
-        if (cmd === 'y') {
+        if (cmd === 'y' || cmd === 'yes') {
             const missionId = gameState.pendingReplay;
             gameState.pendingReplay = null;
-            
+
             gameState.currentMission = missions.find(m => m.id === missionId);
             gameState.hintCount = 0;
             gameState.missionStartTime = Date.now();
             gameState.attempts = 0;
             updatePrompt();
-            
+
             const m = gameState.currentMission;
             print('╔══════════════════════════════════════╗');
             print(`║ REPLAY: MISSION ${m.id}: ${m.name} ║`);
@@ -684,10 +698,15 @@ function handleCommand(cmd) {
             print(`\n📖 ${m.story}`);
             print(`\n💻 Type your command. (Replay - no EXP)`);
             return;
-        } else if (cmd === 'n') {
+        } else {
+            // Any other input cancels the replay prompt cleanly
             gameState.pendingReplay = null;
-            print('Replay cancelled.');
-            return;
+            if (cmd !== 'n' && cmd !== 'no') {
+                printInfo('Replay cancelled. Continuing…');
+            } else {
+                print('Replay cancelled.');
+                return;
+            }
         }
     }
     
@@ -769,13 +788,31 @@ function handleCommand(cmd) {
             break;
 
         case 'path':
-            if (gameState.chosePath) printInfo(`Current path: ${gameState.path.toUpperCase()} HAT`);
-            else choosePath();
+            if (gameState.chosePath) {
+                printInfo(`Current path: ${gameState.path.toUpperCase()} HAT`);
+            } else if (args[0] === '1' || args[0] === '2' || args[0] === '3') {
+                setPath(parseInt(args[0]));
+                gameState.awaitingPath = false;
+            } else {
+                choosePath();
+            }
             break;
 
-        case 'path1': setPath(1); break;
-        case 'path2': setPath(2); break;
-        case 'path3': setPath(3); break;
+        case 'path1': setPath(1); gameState.awaitingPath = false; break;
+        case 'path2': setPath(2); gameState.awaitingPath = false; break;
+        case 'path3': setPath(3); gameState.awaitingPath = false; break;
+
+        case '1':
+        case '2':
+        case '3':
+            if (gameState.awaitingPath && !gameState.chosePath) {
+                setPath(parseInt(command));
+                gameState.awaitingPath = false;
+            } else {
+                printError(`❌ Unknown command: ${command}`);
+                printInfo('Type "help" for available commands.');
+            }
+            break;
 
         case 'map': showMap(); break;
         case 'journal': showJournal(); break;
@@ -813,14 +850,20 @@ function handleCommand(cmd) {
         case 'goto':
             if (!gameState.isAdmin) { printError('❌ Admin required'); return; }
             const lvl = parseInt(args[0]);
-            if (!isNaN(lvl)) { gameState.level = lvl; printSuccess(`✅ Teleported to Level ${lvl}`); }
-            else printError('❌ Usage: goto <level>');
+            if (!isNaN(lvl) && lvl >= 1 && lvl <= 100) {
+                gameState.level = lvl;
+                gameState.exp = 0;
+                printSuccess(`✅ Teleported to Level ${lvl}`);
+            } else {
+                printError('❌ Usage: goto <level> (1-100)');
+            }
             break;
 
         case 'unlock_all':
             if (!gameState.isAdmin) { printError('❌ Admin required'); return; }
             gameState.completedMissions = missions.map(m => m.id);
             gameState.level = 100;
+            gameState.exp = 0;
             printSuccess('✅ All missions completed');
             break;
 
@@ -855,19 +898,45 @@ window.addEventListener('load', () => {
     if (window.MISSIONS) {
         missions = window.MISSIONS;
         console.log(`✅ Loaded ${missions.length} missions`);
-        
+
+        const missionChildren = [];
         missions.forEach(m => {
-            if (!gameState.directories[`/missions/level${m.id}`]) {
-                gameState.directories[`/missions/level${m.id}`] = { type: 'dir', children: ['story.txt', 'info.txt', 'dark.txt'] };
-                gameState.directories[`/missions/level${m.id}/story.txt`] = { type: 'file', content: `MISSION ${m.id}: ${m.name}\n\n${m.story}` };
-                gameState.directories[`/missions/level${m.id}/info.txt`] = { type: 'file', content: `Command: ${m.command}\n\nHINTS:\n1. ${m.hint1}\n2. ${m.hint2}` };
-                gameState.directories[`/missions/level${m.id}/dark.txt`] = { type: 'file', content: `🔥 DARK KNOWLEDGE:\n${m.darkKnowledge}` };
+            const dir = `/missions/level${m.id}`;
+            missionChildren.push(`level${m.id}`);
+            if (!gameState.directories[dir]) {
+                gameState.directories[dir] = { type: 'dir', children: ['story.txt', 'info.txt', 'dark.txt'] };
+                gameState.directories[`${dir}/story.txt`] = { type: 'file', content: `MISSION ${m.id}: ${m.name}\n\n${m.story}` };
+                gameState.directories[`${dir}/info.txt`] = { type: 'file', content: `Command: ${m.command}\n\nHINTS:\n1. ${m.hint1}\n2. ${m.hint2}` };
+                gameState.directories[`${dir}/dark.txt`] = { type: 'file', content: `🔥 DARK KNOWLEDGE:\n${m.darkKnowledge}` };
             }
         });
-        
-        gameState.directories['/journal/characters.txt'] = { type: 'file', content: 'CHARACTERS\n\nGHOST - Mysterious mentor' };
+        gameState.directories['/missions'].children = missionChildren;
     }
-    
+
+    // Populate the static lore files referenced in initial directory tree
+    const lore = {
+        '/home/profile.txt': () => `HACKER PROFILE\n\nHandle: guest\nLevel: ${gameState.level}\nEXP: ${gameState.exp}\nPath: ${gameState.path}\nMissions completed: ${gameState.completedMissions.length}/100`,
+        '/home/stats.txt': () => `STATS\n\nLevel: ${gameState.level}\nEXP: ${gameState.exp}/${gameState.level * 1000}\nAct: ${gameState.currentAct}\nChapter: ${gameState.currentChapter}\nAchievements: ${gameState.achievements.length}/10`,
+        '/home/achievements.txt': () => `ACHIEVEMENTS UNLOCKED: ${gameState.achievements.length}/10\n\nUse 'achievements' for full list.`,
+        '/library/knowledge.txt': 'KNOWLEDGE BASE\n\nThe grid is older than you think. Every system has a backdoor.\nEvery firewall has a seam. Look closely.',
+        '/library/paths.txt': 'THE THREE PATHS\n\nWHITE — Build the wall. Defend the innocent.\nBLACK — Tear it down. Take what you can.\nGREY — Walk the line. Truth above all.',
+        '/library/tools.txt': 'TOOLS OF THE TRADE\n\nnmap · hydra · sqlmap · burpsuite · metasploit · john · hashcat · wireshark · aircrack-ng · nikto',
+        '/journal/story.txt': 'YOUR STORY\n\n2077. The grid is connected. You were nothing — until tonight.\nA message arrived. Ghost found you.\nThe choice is yours: fix the system, exploit it, or burn it down.',
+        '/journal/characters.txt': 'CHARACTERS\n\nGHOST — Mysterious mentor. No one has seen their face.\nNYX — Black-hat queen. Dangerous and brilliant.\nVECTOR — White-hat veteran. Builds walls others rely on.',
+        '/journal/clues.txt': 'CLUES\n\nThe grid was not built. It evolved.\nFollow the data. Trust no one in shadows.',
+        '/map/act1.txt': 'ACT I: THE AWAKENING\n\nMissions 1-20. Learn the basics. Meet Ghost.',
+        '/map/act2.txt': 'ACT II: THE CONSPIRACY\n\nMissions 21-40. Web exploits. XSS, CSRF, SSRF, XXE.',
+        '/map/act3.txt': 'ACT III: THE WAR\n\nMissions 41-60. Command injection. File upload. Full-scale combat.',
+        '/map/act4.txt': 'ACT IV: THE RECKONING\n\nMissions 61-80. Metasploit. Privilege escalation. The final approach.',
+        '/map/act5.txt': 'ACT V: THE ENDING\n\nMissions 81-100. Reverse engineering. Bug bounty. Your legacy.'
+    };
+    for (const [path, content] of Object.entries(lore)) {
+        gameState.directories[path] = {
+            type: 'file',
+            get content() { return typeof content === 'function' ? content() : content; }
+        };
+    }
+
     loadSaveSlots();
 });
 
