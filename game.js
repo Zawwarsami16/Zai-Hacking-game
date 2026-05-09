@@ -71,8 +71,26 @@ const prompt = document.getElementById('prompt');
 const startBtn = document.getElementById('startGame');
 const clock = document.getElementById('clock');
 
+let _scrollScheduled = false;
 function scrollToBottom() {
-    if (terminalContent) terminalContent.scrollTop = terminalContent.scrollHeight;
+    if (!terminalContent || _scrollScheduled) return;
+    _scrollScheduled = true;
+    requestAnimationFrame(() => {
+        _scrollScheduled = false;
+        terminalContent.scrollTop = terminalContent.scrollHeight;
+    });
+}
+
+function forceScrollToBottom() {
+    if (!terminalContent) return;
+    // run multiple frames to catch any post-append layout shifts (animations, fonts, etc.)
+    terminalContent.scrollTop = terminalContent.scrollHeight;
+    requestAnimationFrame(() => {
+        terminalContent.scrollTop = terminalContent.scrollHeight;
+        requestAnimationFrame(() => {
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        });
+    });
 }
 
 function escapeHtml(str) {
@@ -971,6 +989,21 @@ if (terminal) {
     });
 }
 
+// Auto-scroll on focus (mobile keyboard pop-up)
+input.addEventListener('focus', () => {
+    setTimeout(forceScrollToBottom, 100);
+    setTimeout(forceScrollToBottom, 350);
+});
+
+// Re-scroll when the visible viewport resizes (mobile keyboard show/hide)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', forceScrollToBottom);
+}
+
+// Final safety net: if any new node lands in output, ensure we end at the bottom
+const _outputObserver = new MutationObserver(() => scrollToBottom());
+if (output) _outputObserver.observe(output, { childList: true });
+
 // Up/Down arrow command history
 const cmdHistory = [];
 let historyIdx = -1;
@@ -985,6 +1018,7 @@ input.addEventListener('keydown', (e) => {
             printCommand(cmd);
             handleCommand(cmd);
             input.value = '';
+            forceScrollToBottom();
         }
     } else if (e.key === 'ArrowUp') {
         if (cmdHistory.length === 0) return;
