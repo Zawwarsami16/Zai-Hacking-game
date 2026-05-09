@@ -4,6 +4,8 @@
 ║                  Created by ZAWWAR                    ║
 ╚══════════════════════════════════════════════════════╝
 
+▶ PLAY NOW: https://zai-hacking-game.vercel.app
+
 📚 OVERVIEW
 ══════════════════════════════════════════════════════
 HACKER'S LEGACY is an epic hacking RPG set in 2077.
