@@ -601,7 +601,7 @@ function handleMissionCommand(cmd) {
             (m.path === 'all' || m.path === gameState.path || gameState.path === 'unselected')
         );
         if (next) {
-            printDim(`→ next up: mission ${next.id} — ${next.name}. type 'start ${next.id}' to continue.`);
+            printDim(`→ next up: mission ${next.id}: ${next.name}. type 'start ${next.id}' to continue.`);
         } else {
             printDim(`→ no more missions at your level. try 'map' to see progress.`);
         }
