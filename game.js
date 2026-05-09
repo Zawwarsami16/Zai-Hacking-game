@@ -64,11 +64,22 @@ let saveSlots = [{}, {}, {}, {}, {}];
 // DOM elements
 const introModal = document.getElementById('introModal');
 const terminal = document.getElementById('terminal');
+const terminalContent = document.getElementById('terminalContent');
 const output = document.getElementById('output');
 const input = document.getElementById('commandInput');
 const prompt = document.getElementById('prompt');
 const startBtn = document.getElementById('startGame');
 const clock = document.getElementById('clock');
+
+function scrollToBottom() {
+    if (terminalContent) terminalContent.scrollTop = terminalContent.scrollHeight;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -79,66 +90,36 @@ setInterval(() => {
     clock.textContent = now.toLocaleTimeString();
 }, 1000);
 
-function print(text) {
+function appendLine(text, color) {
     const line = document.createElement('div');
     line.textContent = text;
+    if (color) line.style.color = color;
     output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
+    scrollToBottom();
 }
+
+function print(text)        { appendLine(text); }
+function printError(text)   { appendLine(text, 'var(--red)'); }
+function printSuccess(text) { appendLine(text, 'var(--green)'); }
+function printInfo(text)    { appendLine(text, 'var(--blue)'); }
+function printWarning(text) { appendLine(text, 'var(--yellow)'); }
+function printPurple(text)  { appendLine(text, 'var(--purple)'); }
+function printOrange(text)  { appendLine(text, 'var(--orange)'); }
+function printDim(text)     { appendLine(text, 'var(--green-dim)'); }
 
 function printCommand(cmd) {
     const line = document.createElement('div');
-    line.innerHTML = `<span class="prompt">${prompt.textContent}</span> ${cmd}`;
+    line.innerHTML = `<span class="prompt">${escapeHtml(prompt.textContent)}</span> ${escapeHtml(cmd)}`;
     output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
+    scrollToBottom();
 }
 
-function printError(text) {
-    const line = document.createElement('div');
-    line.style.color = '#ff0041';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function printSuccess(text) {
-    const line = document.createElement('div');
-    line.style.color = '#00ff41';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function printInfo(text) {
-    const line = document.createElement('div');
-    line.style.color = '#41a6ff';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function printWarning(text) {
-    const line = document.createElement('div');
-    line.style.color = '#ffff41';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function printPurple(text) {
-    const line = document.createElement('div');
-    line.style.color = '#aa41ff';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function printOrange(text) {
-    const line = document.createElement('div');
-    line.style.color = '#ffaa41';
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
+function nextStepHint() {
+    if (!gameState.chosePath) {
+        printDim("→ tip: type 'path' to choose your destiny.");
+    } else if (gameState.completedMissions.length === 0) {
+        printDim("→ tip: type 'start 1' to begin your first mission.");
+    }
 }
 
 // ============================================
@@ -467,6 +448,7 @@ function setPath(num) {
         gameState.chosePath = true;
         printSuccess(`\n✅ ${paths[num].message}`);
         updatePrompt();
+        printDim("→ now type 'start 1' to begin your first mission.");
     } else {
         printError('❌ Invalid path.');
     }
@@ -611,6 +593,18 @@ function handleMissionCommand(cmd) {
         gameState.currentMission = null;
         gameState.currentPath = '/';
         updatePrompt();
+
+        // Auto-suggest next mission
+        const next = missions.find(m =>
+            m.requiredLevel <= gameState.level &&
+            !gameState.completedMissions.includes(m.id) &&
+            (m.path === 'all' || m.path === gameState.path || gameState.path === 'unselected')
+        );
+        if (next) {
+            printDim(`→ next up: mission ${next.id} — ${next.name}. type 'start ${next.id}' to continue.`);
+        } else {
+            printDim(`→ no more missions at your level. try 'map' to see progress.`);
+        }
         return true;
     } else {
         printError(`❌ Wrong command. Attempt ${gameState.attempts}/3`);
@@ -740,6 +734,8 @@ function handleCommand(cmd) {
             print('║ readme     - Game manual            ║');
             print('║ clear      - Clear screen           ║');
             print('╚══════════════════════════════════════╝');
+            print('shortcuts: ↑/↓ history · ctrl+L clear');
+            nextStepHint();
             break;
 
         case 'ls': handleLs(); break;
@@ -940,27 +936,72 @@ window.addEventListener('load', () => {
     loadSaveSlots();
 });
 
+function bootSequence() {
+    const lines = [
+        { t: 'NEURAL_LINK established …',   d: 0,    fn: printDim },
+        { t: 'GRID handshake … OK',          d: 240,  fn: printDim },
+        { t: 'authenticating guest@legacy …', d: 450, fn: printDim },
+        { t: '╔══════════════════════════════════════════════════════╗', d: 700, fn: print },
+        { t: "║              HACKER'S LEGACY                         ║", d: 720, fn: print },
+        { t: '║              THE SAGA — 2077                         ║', d: 740, fn: print },
+        { t: '╚══════════════════════════════════════════════════════╝', d: 760, fn: print },
+        { t: `📚 ${missions.length} missions loaded across 5 acts.`,    d: 1000, fn: printInfo },
+        { t: '',                                                       d: 1100, fn: print },
+        { t: '💭 Ghost whispers: "The grid awaits. Choose wisely."',   d: 1200, fn: printPurple },
+        { t: '',                                                       d: 1300, fn: print },
+        { t: "type 'help' for commands  ·  'path' to choose your destiny", d: 1400, fn: printDim }
+    ];
+    lines.forEach((l) => setTimeout(() => l.fn(l.t), l.d));
+    setTimeout(() => input.focus(), 1450);
+}
+
 startBtn.addEventListener('click', () => {
     introModal.style.display = 'none';
     terminal.style.display = 'flex';
-    print('╔══════════════════════════════════════════════════════╗');
-    print('║              HACKER\'S LEGACY                        ║');
-    print('║              Created by ZAWWAR                      ║');
-    print('╚══════════════════════════════════════════════════════╝');
-    print(`📚 Loaded ${missions.length} missions`);
-    print('\nType "help" to see commands. Type "path" to choose your destiny.');
-    print('\n💭 Ghost whispers: "The grid awaits. Choose wisely."');
-    input.focus();
+    bootSequence();
 });
 
-input.addEventListener('keypress', (e) => {
+// Click anywhere on the terminal to refocus the input
+if (terminal) {
+    terminal.addEventListener('click', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'BUTTON') {
+            input.focus();
+        }
+    });
+}
+
+// Up/Down arrow command history
+const cmdHistory = [];
+let historyIdx = -1;
+
+input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const cmd = input.value.trim();
         if (cmd) {
+            cmdHistory.push(cmd);
+            if (cmdHistory.length > 100) cmdHistory.shift();
+            historyIdx = cmdHistory.length;
             printCommand(cmd);
             handleCommand(cmd);
             input.value = '';
         }
+    } else if (e.key === 'ArrowUp') {
+        if (cmdHistory.length === 0) return;
+        e.preventDefault();
+        historyIdx = Math.max(0, historyIdx - 1);
+        input.value = cmdHistory[historyIdx] || '';
+        // move caret to end
+        requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length));
+    } else if (e.key === 'ArrowDown') {
+        if (cmdHistory.length === 0) return;
+        e.preventDefault();
+        historyIdx = Math.min(cmdHistory.length, historyIdx + 1);
+        input.value = cmdHistory[historyIdx] || '';
+        requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length));
+    } else if (e.key === 'l' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        output.innerHTML = '';
     }
 });
 
