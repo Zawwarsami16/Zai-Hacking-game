@@ -1,10 +1,24 @@
+<div align="center">
+  <a href="https://github.com/Zawwarsami16">
+    <img src="https://raw.githubusercontent.com/Zawwarsami16/Zawwarsami16/main/assets/studio-mark.svg" alt="part of the Anteroom Studio surface · github.com/Zawwarsami16" width="900" height="56" style="max-width:100%"/>
+  </a>
+</div>
+
+# Hacker's Legacy
+
+[![Play](https://img.shields.io/badge/play-zai--hacking--game.vercel.app-ff003c?style=flat-square&labelColor=0a0a0a)](https://zai-hacking-game.vercel.app)
+[![Genre](https://img.shields.io/badge/genre-hacker%20RPG-ff003c?style=flat-square&labelColor=0a0a0a)](#)
+[![Setting](https://img.shields.io/badge/setting-2077-ff003c?style=flat-square&labelColor=0a0a0a)](#)
+
+```
 ╔══════════════════════════════════════════════════════╗
 ║              HACKER'S LEGACY - README                ║
 ║                 Complete Game Manual                  ║
 ║                  Created by ZAWWAR                    ║
 ╚══════════════════════════════════════════════════════╝
+```
 
-▶ PLAY NOW: https://zai-hacking-game.vercel.app
+▶ **PLAY NOW:** [zai-hacking-game.vercel.app](https://zai-hacking-game.vercel.app)
 
 📚 OVERVIEW
 ══════════════════════════════════════════════════════
