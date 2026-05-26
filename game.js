@@ -367,7 +367,18 @@ function handleCat(args) {
 function loadSaveSlots() {
     for (let i = 0; i < 5; i++) {
         const saved = localStorage.getItem(`slot_${i}`);
-        if (saved) saveSlots[i] = JSON.parse(saved);
+        if (!saved) continue;
+        try {
+            saveSlots[i] = JSON.parse(saved);
+        } catch (e) {
+            // Slot is corrupt (manual edit, half-written write, format change).
+            // Drop it rather than poisoning the rest of the load loop, and keep
+            // the localStorage value around in a parallel key for forensics so
+            // the player can recover by hand if they care.
+            console.warn(`save slot ${i} unparseable, quarantining:`, e);
+            localStorage.setItem(`slot_${i}__corrupt_${Date.now()}`, saved);
+            localStorage.removeItem(`slot_${i}`);
+        }
     }
 }
 
