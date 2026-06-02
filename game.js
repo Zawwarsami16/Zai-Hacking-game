@@ -553,9 +553,7 @@ function startMission(id) {
 
 function handleMissionCommand(cmd) {
     if (!gameState.currentMission) return false;
-    
-    gameState.attempts++;
-    
+
     if (cmd === 'hint') {
         gameState.hintCount++;
         if (gameState.hintCount === 1) printInfo(`💡 HINT 1: ${gameState.currentMission.hint1}`);
@@ -580,7 +578,11 @@ function handleMissionCommand(cmd) {
         printInfo(`Attempts: ${gameState.attempts}/3 | Time: ${timeElapsed}s | Hints: ${gameState.hintCount}/3`);
         return true;
     }
-    
+
+    // only a real answer guess counts toward the 3-attempt limit and bonus.
+    // hint/exit/status are meta commands and shouldn't burn an attempt.
+    gameState.attempts++;
+
     if (cmd === gameState.currentMission.command) {
         const timeElapsed = Math.floor((Date.now() - gameState.missionStartTime) / 1000);
         const level = gameState.currentMission.requiredLevel;
