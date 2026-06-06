@@ -592,13 +592,22 @@ function handleMissionCommand(cmd) {
         const attemptBonus = Math.max(0, 3 - gameState.attempts) * 50;
         
         let totalReward = baseReward + timeBonus + attemptBonus;
-        
-        const expNeededForNextLevel = gameState.level * 1000;
-        const maxAllowed = expNeededForNextLevel - gameState.exp + 200;
-        if (totalReward > maxAllowed) totalReward = maxAllowed;
-        
-        if (!gameState.completedMissions.includes(gameState.currentMission.id)) {
+
+        // every mission's requiredLevel equals its id, so progression is lockstep:
+        // a first clear is meant to move you exactly one level. base reward
+        // (level*800) plus the best-case bonus (700) is short of a full level
+        // (level*1000) from level 4 up, and the old code only had a +200 ceiling,
+        // no floor, so first clears under-earned and the player got hard-stalled
+        // at a mission they could never out-earn. clamp a first clear into
+        // [enough-to-level, +200 overshoot]; keep the +200 ceiling on replays so
+        // they can't farm past the cap.
+        const toNextLevel = gameState.level * 1000 - gameState.exp;
+        const isFirstClear = !gameState.completedMissions.includes(gameState.currentMission.id);
+        if (isFirstClear) {
+            totalReward = Math.min(Math.max(totalReward, toNextLevel), toNextLevel + 200);
             gameState.completedMissions.push(gameState.currentMission.id);
+        } else if (totalReward > toNextLevel + 200) {
+            totalReward = toNextLevel + 200;
         }
         gameState.exp += totalReward;
 
