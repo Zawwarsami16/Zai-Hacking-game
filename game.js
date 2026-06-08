@@ -629,7 +629,16 @@ function handleMissionCommand(cmd) {
         if (leveledUp) {
             printSuccess(`\n⬆️ LEVEL UP! You are now Level ${gameState.level}`);
         }
-        
+
+        // handleCommand only runs checkAchievements() at its very end, but a
+        // mission command returns early before that point, so the achievements
+        // that can ONLY be earned by clearing a mission (First Blood, Mission
+        // Master, Legend) or by the level-up it triggers (Level 10/25/50/75/100)
+        // never fired at the moment they were earned, they only showed up on the
+        // next non-mission command the player happened to type, and clearing the
+        // final mission could miss them entirely. check here so they unlock now.
+        checkAchievements();
+
         gameState.currentMission = null;
         gameState.currentPath = '/';
         updatePrompt();
